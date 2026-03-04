@@ -8,7 +8,7 @@ app = FastAPI(title="AI Dashboard Builder API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Allow any origin for Vercel deployment
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
