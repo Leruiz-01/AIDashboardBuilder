@@ -74,10 +74,10 @@ function DashboardWidget({ item }: { item: AnalysisResult }) {
           </span>
           <span
             className={`text-xs font-medium ${item.trend === "up"
-                ? "text-emerald-600"
-                : item.trend === "down"
-                  ? "text-red-500"
-                  : "text-muted-foreground"
+              ? "text-emerald-600"
+              : item.trend === "down"
+                ? "text-red-500"
+                : "text-muted-foreground"
               }`}
           >
             {item.trend === "up"
@@ -106,7 +106,8 @@ function WidgetChart({ type, item }: { type: string, item: AnalysisResult }) {
     async function fetchChartData() {
       try {
         setLoading(true)
-        const response = await fetch("http://localhost:8000/chart-data", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+        const response = await fetch(`${apiUrl}/chart-data`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

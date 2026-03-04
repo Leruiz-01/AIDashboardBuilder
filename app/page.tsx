@@ -24,7 +24,8 @@ export default function Page() {
     formData.append("file", file)
 
     try {
-      const response = await fetch("http://localhost:8000/upload", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const response = await fetch(`${apiUrl}/upload`, {
         method: "POST",
         body: formData,
       })
@@ -36,15 +37,15 @@ export default function Page() {
       const data = await response.json()
       // data should contain { insights: [...] } based on our backend
       if (data.insights && Array.isArray(data.insights)) {
-          setAnalysisInsights(data.insights)
-          setAppState("results")
+        setAnalysisInsights(data.insights)
+        setAppState("results")
       } else {
-          throw new Error("Invalid response structure from analysis server")
+        throw new Error("Invalid response structure from analysis server")
       }
     } catch (error) {
-       console.error("Error analyzing file:", error)
-       setErrorMsg((error as Error).message)
-       setAppState("idle")
+      console.error("Error analyzing file:", error)
+      setErrorMsg((error as Error).message)
+      setAppState("idle")
     }
   }, [])
 
@@ -74,15 +75,15 @@ export default function Page() {
           <div className="flex flex-col gap-4 items-center">
             <FileUpload onUpload={handleUpload} />
             {errorMsg && (
-                <div className="p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
-                   Error: {errorMsg}
-                </div>
+              <div className="p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
+                Error: {errorMsg}
+              </div>
             )}
           </div>
         )}
 
         {appState === "loading" && (
-          <AnalysisLoading onComplete={() => {}} />
+          <AnalysisLoading onComplete={() => { }} />
         )}
 
         {appState === "results" && (
