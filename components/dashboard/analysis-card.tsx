@@ -113,7 +113,11 @@ function MiniChart({ type, data }: { type: string, data?: { name: string, value:
       <ResponsiveContainer width="100%" height="100%">
         {type === "bar" ? (
           <BarChart data={chartData}>
-            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} opacity={0.6} />
+            <Bar dataKey="value" radius={[2, 2, 0, 0]} opacity={0.6}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
           </BarChart>
         ) : type === "line" ? (
           <LineChart data={chartData}>

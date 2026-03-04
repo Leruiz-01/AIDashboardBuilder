@@ -76,8 +76,9 @@ async def upload_file(file: UploadFile = File(...)):
 
                      if x_col in df.columns and y_col in df.columns:
                          plot_df = df.dropna(subset=[x_col, y_col])
-                         plot_df[y_col] = pd.to_numeric(plot_df[y_col], errors='coerce')
-                         plot_df = plot_df.dropna(subset=[y_col])
+                         if aggr in ['sum', 'mean']:
+                             plot_df[y_col] = pd.to_numeric(plot_df[y_col], errors='coerce')
+                             plot_df = plot_df.dropna(subset=[y_col])
                          
                          if not plot_df.empty:
                              if aggr == 'sum':

@@ -22,6 +22,17 @@ interface DashboardPreviewProps {
 export function DashboardPreview({ items, onReset }: DashboardPreviewProps) {
   if (items.length === 0) return null
 
+  const handleExport = () => {
+    if (items.length === 0) return
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items, null, 2))
+    const downloadAnchorNode = document.createElement('a')
+    downloadAnchorNode.setAttribute("href", dataStr)
+    downloadAnchorNode.setAttribute("download", "dashboard_export.json")
+    document.body.appendChild(downloadAnchorNode)
+    downloadAnchorNode.click()
+    downloadAnchorNode.remove()
+  }
+
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -43,7 +54,7 @@ export function DashboardPreview({ items, onReset }: DashboardPreviewProps) {
             <RotateCcw className="size-3.5" />
             Reset
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="size-3.5" />
             Export
           </Button>
@@ -144,7 +155,11 @@ function WidgetChart({ type, item, expanded = false }: { type: string, item: Ana
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
             <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} opacity={0.8} />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]} opacity={0.8}>
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
           </BarChart>
         ) : type === "line" ? (
           <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
