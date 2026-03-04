@@ -9,6 +9,7 @@ export const SAMPLE_RESULTS: AnalysisResult[] = [
     chartType: "line",
     metric: "$284K",
     trend: "up",
+    parameters: { xAxis: "Month", yAxis: "Revenue" }
   },
   {
     id: "user-distribution",
@@ -18,6 +19,7 @@ export const SAMPLE_RESULTS: AnalysisResult[] = [
     chartType: "pie",
     metric: "12.4K",
     trend: "up",
+    parameters: { xAxis: "User Type", yAxis: "Count" }
   },
   {
     id: "conversion-rate",
@@ -27,6 +29,7 @@ export const SAMPLE_RESULTS: AnalysisResult[] = [
     chartType: "bar",
     metric: "3.2%",
     trend: "down",
+    parameters: { xAxis: "Funnel Step", yAxis: "Users" }
   },
   {
     id: "churn-analysis",
@@ -36,6 +39,7 @@ export const SAMPLE_RESULTS: AnalysisResult[] = [
     chartType: "area",
     metric: "2.1%",
     trend: "up",
+    parameters: { xAxis: "Month", yAxis: "Churn Rate" }
   },
   {
     id: "feature-usage",
@@ -45,6 +49,7 @@ export const SAMPLE_RESULTS: AnalysisResult[] = [
     chartType: "bar",
     metric: "89%",
     trend: "neutral",
+    parameters: { xAxis: "Feature", yAxis: "Adoption" }
   },
   {
     id: "growth-forecast",
@@ -54,5 +59,6 @@ export const SAMPLE_RESULTS: AnalysisResult[] = [
     chartType: "line",
     metric: "$4.2M",
     trend: "up",
+    parameters: { xAxis: "Quarter", yAxis: "Projected ARR" }
   },
 ]

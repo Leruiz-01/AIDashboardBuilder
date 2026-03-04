@@ -67,7 +67,7 @@ function DashboardWidget({ item }: { item: AnalysisResult }) {
         </div>
       </CardHeader>
       <CardContent>
-        <WidgetChart type={item.chartType} />
+        <WidgetChart type={item.chartType} item={item} />
         <div className="mt-3 flex items-center gap-2">
           <span className="text-lg font-bold text-foreground tabular-nums">
             {item.metric}
@@ -169,7 +169,7 @@ function WidgetChart({ type, item }: { type: string, item: AnalysisResult }) {
       <ResponsiveContainer width="100%" height="100%">
         {type === "bar" ? (
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" maxTickLength={10} />
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
             <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
             <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} opacity={0.8} />
           </BarChart>
