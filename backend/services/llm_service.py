@@ -3,19 +3,22 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables explicitly from the backend directory
+env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+load_dotenv(env_path)
 
 # Initialize the Gemini client
 # Note: Ensure GOOGLE_API_KEY is set in your environment or .env file
-client = genai.Client()
+api_key = os.environ.get("GOOGLE_API_KEY")
+
+client = genai.Client(api_key=api_key)
 
 def generate_chart_suggestions(data_summary: dict) -> str:
     """
     Sends the data summary to Gemini and asks for chart suggestions in a strict JSON format.
     """
     
-    model_name = "gemini-1.5-flash"
+    model_name = "gemini-2.5-flash"
     
     prompt = f"""
     You are an expert Data Analyst. I have a dataset with the following profile:

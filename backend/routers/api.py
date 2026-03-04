@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 import pandas as pd
 import json
 import io
+import re
 
 from services.data_service import get_dataframe_summary
 from services.llm_service import generate_chart_suggestions
@@ -49,8 +50,13 @@ async def upload_file(file: UploadFile = File(...)):
         # Ask LLM for suggestions
         llm_response_text = generate_chart_suggestions(summary)
         
+        # Strip markdown formatting if present
+        cleaned_text = re.sub(r'```json\s*', '', llm_response_text)
+        cleaned_text = re.sub(r'```\s*', '', cleaned_text)
+        cleaned_text = cleaned_text.strip()
+        
         try:
-             suggestions = json.loads(llm_response_text)
+             suggestions = json.loads(cleaned_text)
         except json.JSONDecodeError:
              print("LLM returned malformed JSON:", llm_response_text)
              raise HTTPException(status_code=500, detail="Failed to parse analysis results.")
