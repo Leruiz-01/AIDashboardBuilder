@@ -15,19 +15,13 @@ export default function Page() {
   const [dashboardItems, setDashboardItems] = useState<AnalysisResult[]>([])
   const [analysisInsights, setAnalysisInsights] = useState<AnalysisResult[]>([])
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [fileDataUrl, setFileDataUrl] = useState<string | null>(null)
 
   const handleUpload = useCallback(async (file: File) => {
     setAppState("loading")
     setErrorMsg(null)
 
     const reader = new FileReader()
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string
-      // Extract just the base64 part safely to prevent python decoding errors
-      const base64Data = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
-      setFileDataUrl(base64Data)
-
+    reader.onload = async () => {
       const formData = new FormData()
       formData.append("file", file)
 
@@ -73,7 +67,6 @@ export default function Page() {
     setAppState("idle")
     setAnalysisInsights([])
     setErrorMsg(null)
-    setFileDataUrl(null)
   }, [])
 
   return (
@@ -105,7 +98,6 @@ export default function Page() {
             <DashboardPreview
               items={dashboardItems}
               onReset={handleReset}
-              fileDataUrl={fileDataUrl}
             />
           </>
         )}

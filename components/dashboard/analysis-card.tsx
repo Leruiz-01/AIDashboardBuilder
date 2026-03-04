@@ -26,6 +26,7 @@ export interface AnalysisResult {
     xAxis: string
     yAxis: string
   }
+  data?: { name: string, value: number }[]
 }
 
 interface AnalysisCardProps {
@@ -56,7 +57,7 @@ export function AnalysisCard({ result, onAddToDashboard }: AnalysisCardProps) {
       </CardHeader>
 
       <CardContent>
-        <MiniChart type={result.chartType} />
+        <MiniChart type={result.chartType} data={result.data} />
       </CardContent>
 
       <CardFooter className="flex items-center justify-between">
@@ -66,10 +67,10 @@ export function AnalysisCard({ result, onAddToDashboard }: AnalysisCardProps) {
           </span>
           <span
             className={`text-xs font-medium ${result.trend === "up"
-                ? "text-emerald-600"
-                : result.trend === "down"
-                  ? "text-red-500"
-                  : "text-muted-foreground"
+              ? "text-emerald-600"
+              : result.trend === "down"
+                ? "text-red-500"
+                : "text-muted-foreground"
               }`}
           >
             {result.trend === "up" ? "Upward" : result.trend === "down" ? "Downward" : "Stable"}
@@ -98,15 +99,11 @@ export function AnalysisCard({ result, onAddToDashboard }: AnalysisCardProps) {
   )
 }
 
-function MiniChart({ type }: { type: string }) {
-  // Using some mock data to make the 'mini chart' alive inside the suggestion card
-  const mockData = [
-    { name: "A", value: 40 },
-    { name: "B", value: 65 },
-    { name: "C", value: 45 },
-    { name: "D", value: 80 },
-    { name: "E", value: 55 },
-    { name: "F", value: 70 },
+function MiniChart({ type, data }: { type: string, data?: { name: string, value: number }[] }) {
+  // Use real data if provided by the backend, otherwise fallback to empty state
+  const chartData = data && data.length > 0 ? data : [
+    { name: "A", value: 0 },
+    { name: "B", value: 0 },
   ]
 
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57']
@@ -115,23 +112,23 @@ function MiniChart({ type }: { type: string }) {
     <div className="h-24 w-full">
       <ResponsiveContainer width="100%" height="100%">
         {type === "bar" ? (
-          <BarChart data={mockData}>
+          <BarChart data={chartData}>
             <Bar dataKey="value" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} opacity={0.6} />
           </BarChart>
         ) : type === "line" ? (
-          <LineChart data={mockData}>
+          <LineChart data={chartData}>
             <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} opacity={0.6} />
           </LineChart>
         ) : type === "pie" ? (
           <PieChart>
-            <Pie data={mockData} dataKey="value" cx="50%" cy="50%" innerRadius={20} outerRadius={40} fill="#8884d8" stroke="none">
-              {mockData.map((entry, index) => (
+            <Pie data={chartData} dataKey="value" cx="50%" cy="50%" innerRadius={20} outerRadius={40} fill="#8884d8" stroke="none">
+              {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.6} />
               ))}
             </Pie>
           </PieChart>
         ) : (
-          <AreaChart data={mockData}>
+          <AreaChart data={chartData}>
             <Area type="monotone" dataKey="value" fill="hsl(var(--primary))" stroke="none" opacity={0.3} />
           </AreaChart>
         )}
