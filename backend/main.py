@@ -7,7 +7,7 @@ app = FastAPI(title="AI Dashboard Builder API", version="1.0.0")
 # Allow CORS for Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"], # Allow any origin for Vercel deployment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
