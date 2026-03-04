@@ -52,6 +52,8 @@ def generate_chart_suggestions(data_summary: dict) -> str:
     - 'chartType' MUST be one of: "bar", "line", "pie", or "area".
     - 'xAxis' and 'yAxis' MUST exactly match the names of the columns provided.
     - If it's a 'pie' chart, 'xAxis' is the category label and 'yAxis' is the numerical value.
+    - STRICT MATH RULE: Never attempt to "sum" or "mean" string/text columns or unique IDs. Only suggest valid mathematical aggregations for the specific data type.
+    - STRICT VALIDATION RULE: If the dataset appears to be a pure text corpus, a log file, or has absolutely no business intelligence/analytical value, immediately return an empty array: []
     """
     
     response = client.models.generate_content(

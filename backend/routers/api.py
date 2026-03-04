@@ -41,6 +41,20 @@ async def upload_file(file: UploadFile = File(...)):
              # Just a safety limit for memory in this prototype
              df = df.head(50000)
              
+        # Strict Analysis Validations
+        if df.shape[1] < 2:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid dataset: A valid dashboard requires at least 2 columns to create charts."
+            )
+            
+        numeric_cols = df.select_dtypes(include=['number', 'float', 'int']).columns
+        if len(numeric_cols) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid dataset: No numerical data found. At least one column must contain numbers to generate charts."
+            )
+             
         # Store df in memory using a simple session/file ID
         file_id = "session_df" # Simplified for this single-user prototype
         DATAFRAME_STORAGE[file_id] = df
