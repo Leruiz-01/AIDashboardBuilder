@@ -15,38 +15,47 @@ export default function Page() {
   const [dashboardItems, setDashboardItems] = useState<AnalysisResult[]>([])
   const [analysisInsights, setAnalysisInsights] = useState<AnalysisResult[]>([])
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [fileDataUrl, setFileDataUrl] = useState<string | null>(null)
 
   const handleUpload = useCallback(async (file: File) => {
     setAppState("loading")
     setErrorMsg(null)
 
-    const formData = new FormData()
-    formData.append("file", file)
+    // Capture the file completely as base64 to allow stateless chart rendering
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string
+      setFileDataUrl(dataUrl)
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-      const response = await fetch(`${apiUrl}/upload`, {
-        method: "POST",
-        body: formData,
-      })
+      const formData = new FormData()
+      formData.append("file", file)
 
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`)
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+        const response = await fetch(`${apiUrl}/upload`, {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        // data should contain { insights: [...] } based on our backend
+        if (data.insights && Array.isArray(data.insights)) {
+          setAnalysisInsights(data.insights)
+          setAppState("results")
+        } else {
+          throw new Error("Invalid response structure from analysis server")
+        }
+      } catch (error) {
+        console.error("Error analyzing file:", error)
+        setErrorMsg((error as Error).message)
+        setAppState("idle")
       }
-
-      const data = await response.json()
-      // data should contain { insights: [...] } based on our backend
-      if (data.insights && Array.isArray(data.insights)) {
-        setAnalysisInsights(data.insights)
-        setAppState("results")
-      } else {
-        throw new Error("Invalid response structure from analysis server")
-      }
-    } catch (error) {
-      console.error("Error analyzing file:", error)
-      setErrorMsg((error as Error).message)
-      setAppState("idle")
     }
+    reader.readAsDataURL(file)
   }, [])
 
   const handleAddToDashboard = useCallback(
@@ -61,9 +70,9 @@ export default function Page() {
 
   const handleReset = useCallback(() => {
     setAppState("idle")
-    setDashboardItems([])
     setAnalysisInsights([])
     setErrorMsg(null)
+    setFileDataUrl(null)
   }, [])
 
   return (
@@ -95,6 +104,7 @@ export default function Page() {
             <DashboardPreview
               items={dashboardItems}
               onReset={handleReset}
+              fileDataUrl={fileDataUrl}
             />
           </>
         )}

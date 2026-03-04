@@ -9,9 +9,10 @@ import type { AnalysisResult } from "./analysis-card"
 interface DashboardPreviewProps {
   items: AnalysisResult[]
   onReset: () => void
+  fileDataUrl?: string | null
 }
 
-export function DashboardPreview({ items, onReset }: DashboardPreviewProps) {
+export function DashboardPreview({ items, onReset, fileDataUrl }: DashboardPreviewProps) {
   if (items.length === 0) return null
 
   return (
@@ -46,7 +47,7 @@ export function DashboardPreview({ items, onReset }: DashboardPreviewProps) {
         <CardContent className="p-4 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
-              <DashboardWidget key={item.id} item={item} />
+              <DashboardWidget key={item.id} item={item} fileDataUrl={fileDataUrl} />
             ))}
           </div>
         </CardContent>
@@ -55,7 +56,7 @@ export function DashboardPreview({ items, onReset }: DashboardPreviewProps) {
   )
 }
 
-function DashboardWidget({ item }: { item: AnalysisResult }) {
+function DashboardWidget({ item, fileDataUrl }: { item: AnalysisResult, fileDataUrl?: string | null }) {
   return (
     <Card className="rounded-xl shadow-none border bg-background">
       <CardHeader className="pb-2">
@@ -67,7 +68,7 @@ function DashboardWidget({ item }: { item: AnalysisResult }) {
         </div>
       </CardHeader>
       <CardContent>
-        <WidgetChart type={item.chartType} item={item} />
+        <WidgetChart type={item.chartType} item={item} fileDataUrl={fileDataUrl} />
         <div className="mt-3 flex items-center gap-2">
           <span className="text-lg font-bold text-foreground tabular-nums">
             {item.metric}
@@ -95,7 +96,7 @@ function DashboardWidget({ item }: { item: AnalysisResult }) {
 import React, { useEffect, useState } from "react"
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, Cell, XAxis, Tooltip } from "recharts"
 
-function WidgetChart({ type, item }: { type: string, item: AnalysisResult }) {
+function WidgetChart({ type, item, fileDataUrl }: { type: string, item: AnalysisResult, fileDataUrl?: string | null }) {
   const [data, setData] = useState<{ name: string, value: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -115,7 +116,8 @@ function WidgetChart({ type, item }: { type: string, item: AnalysisResult }) {
           body: JSON.stringify({
             xAxis: item.parameters?.xAxis,
             yAxis: item.parameters?.yAxis,
-            chartType: type
+            chartType: type,
+            fileDataUrl: fileDataUrl
           })
         })
 

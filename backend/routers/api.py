@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import io
 import re
+import base64
 
 from services.data_service import get_dataframe_summary
 from services.llm_service import generate_chart_suggestions
@@ -74,13 +75,36 @@ async def get_chart_data(params: dict):
     Receives JSON containing chart settings (xAxis, yAxis, chartType, etc).
     Aggregates the dataframe to return the proper chart data series.
     """
-    # For prototype we assume a single user and file
-    file_id = "session_df"
+    # For production stateless (Render), we receive the file data directly in the params
+    file_data_url = params.get('fileDataUrl')
     
-    if file_id not in DATAFRAME_STORAGE:
-        raise HTTPException(status_code=400, detail="No session data found. Please upload a file first.")
-        
-    df = DATAFRAME_STORAGE[file_id]
+    if file_data_url:
+        try:
+            # Format is usually 'data:text/csv;base64,.....'
+            if ',' in file_data_url:
+                base64_data = file_data_url.split(',')[1]
+            else:
+                base64_data = file_data_url
+                
+            decoded_bytes = base64.b64decode(base64_data)
+            
+            # Try parsing as CSV first, fallback to Excel
+            try:
+                df = pd.read_csv(io.BytesIO(decoded_bytes))
+            except Exception:
+                try:
+                    df = pd.read_csv(io.BytesIO(decoded_bytes), encoding='latin1', sep=None, engine='python')
+                except Exception:
+                     df = pd.read_excel(io.BytesIO(decoded_bytes))
+        except Exception as e:
+            print(f"Error decoding base64 file data: {str(e)}")
+            raise HTTPException(status_code=400, detail="Could not parse the provided file data.")
+    else:
+        # Fallback to prototyping memory (works locally, but fails on Render if worker restarts)
+        file_id = "session_df"
+        if file_id not in DATAFRAME_STORAGE:
+            raise HTTPException(status_code=400, detail="No session data found and no file data provided.")
+        df = DATAFRAME_STORAGE[file_id]
     
     try:
         x_col = params.get('xAxis')
