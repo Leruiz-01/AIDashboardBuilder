@@ -86,7 +86,17 @@ async def get_chart_data(params: dict):
             else:
                 base64_data = file_data_url
                 
-            decoded_bytes = base64.b64decode(base64_data)
+            # Ensure correct padding for base64
+            base64_data = str(base64_data).strip()
+            # Strip out any non-ascii characters that might have been injected
+            base64_data = re.sub(r'[^\x00-\x7F]+', '', base64_data)
+            # Handle potential url-encoding or incorrect padding from JS
+            base64_data = base64_data.replace('-', '+').replace('_', '/')
+            padding_needed = len(base64_data) % 4
+            if padding_needed:
+                base64_data += '=' * (4 - padding_needed)
+                
+            decoded_bytes = base64.b64decode(base64_data, validate=False)
             
             # Try parsing as CSV first, fallback to Excel
             try:

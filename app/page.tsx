@@ -21,11 +21,12 @@ export default function Page() {
     setAppState("loading")
     setErrorMsg(null)
 
-    // Capture the file completely as base64 to allow stateless chart rendering
     const reader = new FileReader()
     reader.onload = async (e) => {
       const dataUrl = e.target?.result as string
-      setFileDataUrl(dataUrl)
+      // Extract just the base64 part safely to prevent python decoding errors
+      const base64Data = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
+      setFileDataUrl(base64Data)
 
       const formData = new FormData()
       formData.append("file", file)
