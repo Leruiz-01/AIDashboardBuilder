@@ -7,35 +7,62 @@ import { AnalysisLoading } from "@/components/dashboard/analysis-loading"
 import { AnalysisResults } from "@/components/dashboard/analysis-results"
 import { DashboardPreview } from "@/components/dashboard/dashboard-preview"
 import type { AnalysisResult } from "@/components/dashboard/analysis-card"
-import { SAMPLE_RESULTS } from "@/lib/sample-data"
 
 type AppState = "idle" | "loading" | "results"
 
 export default function Page() {
   const [appState, setAppState] = useState<AppState>("idle")
   const [dashboardItems, setDashboardItems] = useState<AnalysisResult[]>([])
+  const [analysisInsights, setAnalysisInsights] = useState<AnalysisResult[]>([])
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const handleUpload = useCallback(() => {
+  const handleUpload = useCallback(async (file: File) => {
     setAppState("loading")
-  }, [])
+    setErrorMsg(null)
 
-  const handleAnalysisComplete = useCallback(() => {
-    setAppState("results")
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const response = await fetch("http://localhost:8000/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      // data should contain { insights: [...] } based on our backend
+      if (data.insights && Array.isArray(data.insights)) {
+          setAnalysisInsights(data.insights)
+          setAppState("results")
+      } else {
+          throw new Error("Invalid response structure from analysis server")
+      }
+    } catch (error) {
+       console.error("Error analyzing file:", error)
+       setErrorMsg((error as Error).message)
+       setAppState("idle")
+    }
   }, [])
 
   const handleAddToDashboard = useCallback(
     (id: string) => {
-      const result = SAMPLE_RESULTS.find((r) => r.id === id)
+      const result = analysisInsights.find((r) => r.id === id)
       if (result && !dashboardItems.some((item) => item.id === id)) {
         setDashboardItems((prev) => [...prev, result])
       }
     },
-    [dashboardItems]
+    [dashboardItems, analysisInsights]
   )
 
   const handleReset = useCallback(() => {
     setAppState("idle")
     setDashboardItems([])
+    setAnalysisInsights([])
+    setErrorMsg(null)
   }, [])
 
   return (
@@ -44,17 +71,24 @@ export default function Page() {
         <HeroSection />
 
         {appState === "idle" && (
-          <FileUpload onUpload={handleUpload} />
+          <div className="flex flex-col gap-4 items-center">
+            <FileUpload onUpload={handleUpload} />
+            {errorMsg && (
+                <div className="p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
+                   Error: {errorMsg}
+                </div>
+            )}
+          </div>
         )}
 
         {appState === "loading" && (
-          <AnalysisLoading onComplete={handleAnalysisComplete} />
+          <AnalysisLoading onComplete={() => {}} />
         )}
 
         {appState === "results" && (
           <>
             <AnalysisResults
-              results={SAMPLE_RESULTS}
+              results={analysisInsights}
               onAddToDashboard={handleAddToDashboard}
             />
             <DashboardPreview
@@ -67,3 +101,4 @@ export default function Page() {
     </main>
   )
 }
+

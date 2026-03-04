@@ -73,13 +73,12 @@ function DashboardWidget({ item }: { item: AnalysisResult }) {
             {item.metric}
           </span>
           <span
-            className={`text-xs font-medium ${
-              item.trend === "up"
+            className={`text-xs font-medium ${item.trend === "up"
                 ? "text-emerald-600"
                 : item.trend === "down"
                   ? "text-red-500"
                   : "text-muted-foreground"
-            }`}
+              }`}
           >
             {item.trend === "up"
               ? "+12%"
@@ -93,83 +92,109 @@ function DashboardWidget({ item }: { item: AnalysisResult }) {
   )
 }
 
-function WidgetChart({ type }: { type: string }) {
-  const barHeights = [35, 55, 40, 75, 50, 65, 85, 60, 45, 70, 55, 80]
+import React, { useEffect, useState } from "react"
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, Cell, XAxis, Tooltip } from "recharts"
 
-  if (type === "bar") {
-    return (
-      <div className="flex h-20 items-end gap-1">
-        {barHeights.map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t-sm bg-primary/20"
-            style={{ height: `${h}%` }}
-          />
-        ))}
-      </div>
-    )
+function WidgetChart({ type, item }: { type: string, item: AnalysisResult }) {
+  const [data, setData] = useState<{ name: string, value: number }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchChartData() {
+      try {
+        setLoading(true)
+        const response = await fetch("http://localhost:8000/chart-data", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            xAxis: item.parameters.xAxis,
+            yAxis: item.parameters.yAxis,
+            chartType: type
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch chart data")
+        }
+
+        const result = await response.json()
+        if (isMounted) {
+          setData(result.data || [])
+          setError(null)
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err.message)
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    // Only fetch if parameters exist
+    if (item.parameters && item.parameters.xAxis && item.parameters.yAxis) {
+      fetchChartData()
+    } else {
+      setLoading(false)
+      setError("No parameters available for this chart")
+    }
+
+    return () => { isMounted = false }
+  }, [item])
+
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57']
+
+  if (loading) {
+    return <div className="flex h-40 items-center justify-center text-sm text-muted-foreground animate-pulse">Loading data...</div>
   }
 
-  if (type === "line") {
-    return (
-      <svg
-        viewBox="0 0 240 80"
-        className="h-20 w-full"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M0 65 Q30 45, 60 55 T120 35 T180 40 T240 15"
-          className="stroke-primary/40"
-          strokeWidth="2"
-        />
-        <path
-          d="M0 65 Q30 45, 60 55 T120 35 T180 40 T240 15 V80 H0 Z"
-          className="fill-primary/8"
-        />
-      </svg>
-    )
+  if (error) {
+    return <div className="flex h-40 items-center justify-center text-xs text-red-500 text-center px-4">{error}</div>
   }
 
-  if (type === "pie") {
-    return (
-      <svg viewBox="0 0 80 80" className="mx-auto h-20 w-20" aria-hidden="true">
-        <circle cx="40" cy="40" r="35" className="fill-muted" />
-        <circle
-          cx="40"
-          cy="40"
-          r="17.5"
-          fill="none"
-          className="stroke-primary"
-          strokeWidth="35"
-          strokeDasharray="75 110"
-          strokeOpacity="0.3"
-          transform="rotate(-90 40 40)"
-        />
-        <circle
-          cx="40"
-          cy="40"
-          r="17.5"
-          fill="none"
-          className="stroke-chart-2"
-          strokeWidth="35"
-          strokeDasharray="35 110"
-          strokeOpacity="0.3"
-          transform="rotate(155 40 40)"
-        />
-      </svg>
-    )
+  if (data.length === 0) {
+    return <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">No data available</div>
   }
 
   return (
-    <div className="flex h-20 items-end gap-1">
-      {barHeights.map((h, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-t-sm bg-primary/15"
-          style={{ height: `${h}%` }}
-        />
-      ))}
+    <div className="h-40 w-full mt-2">
+      <ResponsiveContainer width="100%" height="100%">
+        {type === "bar" ? (
+          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" maxTickLength={10} />
+            <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
+            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} opacity={0.8} />
+          </BarChart>
+        ) : type === "line" ? (
+          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+            <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
+            <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          </LineChart>
+        ) : type === "pie" ? (
+          <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+            <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
+            <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={35} outerRadius={60} fill="#8884d8" stroke="none">
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+          </PieChart>
+        ) : (
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+            <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
+            <Area type="monotone" dataKey="value" fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeWidth={2} opacity={0.4} />
+          </AreaChart>
+        )}
+      </ResponsiveContainer>
     </div>
   )
 }

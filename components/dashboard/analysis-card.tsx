@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Check } from "lucide-react"
 import { useState } from "react"
 
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, Cell, Tooltip } from "recharts"
+
 export interface AnalysisResult {
   id: string
   title: string
@@ -20,6 +22,10 @@ export interface AnalysisResult {
   chartType: "bar" | "line" | "pie" | "area"
   metric: string
   trend: "up" | "down" | "neutral"
+  parameters: {
+    xAxis: string
+    yAxis: string
+  }
 }
 
 interface AnalysisCardProps {
@@ -59,15 +65,14 @@ export function AnalysisCard({ result, onAddToDashboard }: AnalysisCardProps) {
             {result.metric}
           </span>
           <span
-            className={`text-xs font-medium ${
-              result.trend === "up"
+            className={`text-xs font-medium ${result.trend === "up"
                 ? "text-emerald-600"
                 : result.trend === "down"
                   ? "text-red-500"
                   : "text-muted-foreground"
-            }`}
+              }`}
           >
-            {result.trend === "up" ? "+12%" : result.trend === "down" ? "-5%" : "0%"}
+            {result.trend === "up" ? "Upward" : result.trend === "down" ? "Downward" : "Stable"}
           </span>
         </div>
         <Button
@@ -94,58 +99,43 @@ export function AnalysisCard({ result, onAddToDashboard }: AnalysisCardProps) {
 }
 
 function MiniChart({ type }: { type: string }) {
+  // Using some mock data to make the 'mini chart' alive inside the suggestion card
+  const mockData = [
+    { name: "A", value: 40 },
+    { name: "B", value: 65 },
+    { name: "C", value: 45 },
+    { name: "D", value: 80 },
+    { name: "E", value: 55 },
+    { name: "F", value: 70 },
+  ]
+
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57']
+
   return (
-    <div className="flex h-24 items-end gap-1.5">
-      {type === "bar" &&
-        [40, 65, 45, 80, 55, 70, 90, 60].map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t-sm bg-primary/20 transition-all hover:bg-primary/40"
-            style={{ height: `${h}%` }}
-          />
-        ))}
-      {type === "line" && (
-        <svg
-          viewBox="0 0 200 80"
-          className="h-full w-full"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M0 60 Q25 40, 50 50 T100 30 T150 45 T200 20"
-            className="stroke-primary/40"
-            strokeWidth="2"
-            fill="none"
-          />
-          <path
-            d="M0 60 Q25 40, 50 50 T100 30 T150 45 T200 20 V80 H0 Z"
-            className="fill-primary/10"
-          />
-        </svg>
-      )}
-      {type === "pie" && (
-        <svg viewBox="0 0 80 80" className="mx-auto size-20" aria-hidden="true">
-          <circle cx="40" cy="40" r="35" className="fill-primary/10" />
-          <circle
-            cx="40"
-            cy="40"
-            r="17.5"
-            fill="none"
-            className="stroke-primary/40"
-            strokeWidth="35"
-            strokeDasharray="70 110"
-            transform="rotate(-90 40 40)"
-          />
-        </svg>
-      )}
-      {type === "area" &&
-        [30, 50, 35, 70, 60, 80, 55, 75].map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t-sm bg-primary/15 transition-all hover:bg-primary/30"
-            style={{ height: `${h}%` }}
-          />
-        ))}
+    <div className="h-24 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        {type === "bar" ? (
+          <BarChart data={mockData}>
+            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} opacity={0.6} />
+          </BarChart>
+        ) : type === "line" ? (
+          <LineChart data={mockData}>
+            <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} opacity={0.6} />
+          </LineChart>
+        ) : type === "pie" ? (
+          <PieChart>
+            <Pie data={mockData} dataKey="value" cx="50%" cy="50%" innerRadius={20} outerRadius={40} fill="#8884d8" stroke="none">
+              {mockData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.6} />
+              ))}
+            </Pie>
+          </PieChart>
+        ) : (
+          <AreaChart data={mockData}>
+            <Area type="monotone" dataKey="value" fill="hsl(var(--primary))" stroke="none" opacity={0.3} />
+          </AreaChart>
+        )}
+      </ResponsiveContainer>
     </div>
   )
 }
