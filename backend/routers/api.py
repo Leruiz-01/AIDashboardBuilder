@@ -96,6 +96,9 @@ async def get_chart_data(params: dict):
                     df = pd.read_csv(io.BytesIO(decoded_bytes), encoding='latin1', sep=None, engine='python')
                 except Exception:
                      df = pd.read_excel(io.BytesIO(decoded_bytes))
+                     
+            # Clean headers to prevent mismatches
+            df.columns = df.columns.astype(str).str.strip()
         except Exception as e:
             print(f"Error decoding base64 file data: {str(e)}")
             raise HTTPException(status_code=400, detail="Could not parse the provided file data.")
@@ -107,8 +110,8 @@ async def get_chart_data(params: dict):
         df = DATAFRAME_STORAGE[file_id]
     
     try:
-        x_col = params.get('xAxis')
-        y_col = params.get('yAxis')
+        x_col = str(params.get('xAxis', '')).strip()
+        y_col = str(params.get('yAxis', '')).strip()
         aggr = params.get('aggregation', 'sum') # Default aggregation
         limit = params.get('limit', 20)
         
@@ -116,8 +119,14 @@ async def get_chart_data(params: dict):
              raise HTTPException(status_code=400, detail="Missing required parameters: xAxis and yAxis")
              
         if x_col not in df.columns or y_col not in df.columns:
-            # If for some reason LLM gets the column name wrong 
-            return {"data": []}
+            # Attempt case-insensitive match
+            for col in df.columns:
+                if col.lower() == x_col.lower(): x_col = col
+                if col.lower() == y_col.lower(): y_col = col
+                
+            if x_col not in df.columns or y_col not in df.columns:
+                 print(f"Data Mismatch - Requested: {x_col}, {y_col}. Available: {df.columns.tolist()}")
+                 return {"data": []}
             
         # Clean data: drop NAs in those specific columns
         plot_df = df.dropna(subset=[x_col, y_col])

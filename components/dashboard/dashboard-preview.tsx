@@ -3,7 +3,15 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { RotateCcw, Download, LayoutDashboard } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { RotateCcw, Download, LayoutDashboard, Maximize2 } from "lucide-react"
 import type { AnalysisResult } from "./analysis-card"
 
 interface DashboardPreviewProps {
@@ -58,45 +66,65 @@ export function DashboardPreview({ items, onReset, fileDataUrl }: DashboardPrevi
 
 function DashboardWidget({ item, fileDataUrl }: { item: AnalysisResult, fileDataUrl?: string | null }) {
   return (
-    <Card className="rounded-xl shadow-none border bg-background">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-          <Badge variant="outline" className="text-[10px]">
-            {item.chartType}
-          </Badge>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Card className="rounded-xl shadow-none border bg-background hover:border-primary/50 cursor-pointer transition-colors group relative">
+          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Maximize2 className="size-4 text-muted-foreground" />
+          </div>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium pr-6">{item.title}</CardTitle>
+              <Badge variant="outline" className="text-[10px]">
+                {item.chartType}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="pointer-events-none">
+              <WidgetChart type={item.chartType} item={item} fileDataUrl={fileDataUrl} />
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-lg font-bold text-foreground tabular-nums">
+                {item.metric}
+              </span>
+              <span
+                className={`text-xs font-medium ${item.trend === "up"
+                  ? "text-emerald-600"
+                  : item.trend === "down"
+                    ? "text-red-500"
+                    : "text-muted-foreground"
+                  }`}
+              >
+                {item.trend === "up"
+                  ? "+12%"
+                  : item.trend === "down"
+                    ? "-5%"
+                    : "0%"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{item.title}</DialogTitle>
+          <DialogDescription className="text-base text-foreground mt-2">
+            {item.insight}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="mt-4">
+          <WidgetChart type={item.chartType} item={item} fileDataUrl={fileDataUrl} expanded />
         </div>
-      </CardHeader>
-      <CardContent>
-        <WidgetChart type={item.chartType} item={item} fileDataUrl={fileDataUrl} />
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-lg font-bold text-foreground tabular-nums">
-            {item.metric}
-          </span>
-          <span
-            className={`text-xs font-medium ${item.trend === "up"
-              ? "text-emerald-600"
-              : item.trend === "down"
-                ? "text-red-500"
-                : "text-muted-foreground"
-              }`}
-          >
-            {item.trend === "up"
-              ? "+12%"
-              : item.trend === "down"
-                ? "-5%"
-                : "0%"}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 import React, { useEffect, useState } from "react"
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, Cell, XAxis, Tooltip } from "recharts"
 
-function WidgetChart({ type, item, fileDataUrl }: { type: string, item: AnalysisResult, fileDataUrl?: string | null }) {
+function WidgetChart({ type, item, fileDataUrl, expanded = false }: { type: string, item: AnalysisResult, fileDataUrl?: string | null, expanded?: boolean }) {
   const [data, setData] = useState<{ name: string, value: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -153,21 +181,22 @@ function WidgetChart({ type, item, fileDataUrl }: { type: string, item: Analysis
   }, [item])
 
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57']
+  const heightClass = expanded ? "h-80" : "h-40"
 
   if (loading) {
-    return <div className="flex h-40 items-center justify-center text-sm text-muted-foreground animate-pulse">Loading data...</div>
+    return <div className={`flex ${heightClass} items-center justify-center text-sm text-muted-foreground animate-pulse`}>Loading data...</div>
   }
 
   if (error) {
-    return <div className="flex h-40 items-center justify-center text-xs text-red-500 text-center px-4">{error}</div>
+    return <div className={`flex ${heightClass} items-center justify-center text-xs text-red-500 text-center px-4`}>{error}</div>
   }
 
   if (data.length === 0) {
-    return <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">No data available</div>
+    return <div className={`flex ${heightClass} items-center justify-center text-sm text-muted-foreground`}>No data available</div>
   }
 
   return (
-    <div className="h-40 w-full mt-2">
+    <div className={`${heightClass} w-full mt-2`}>
       <ResponsiveContainer width="100%" height="100%">
         {type === "bar" ? (
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
