@@ -73,6 +73,13 @@ async def upload_file(file: UploadFile = File(...)):
         try:
              suggestions = json.loads(cleaned_text)
              
+             # Defensive checking: LLM might return a dictionary containing a list instead of a direct array
+             if not isinstance(suggestions, list):
+                 if isinstance(suggestions, dict) and 'insights' in suggestions:
+                     suggestions = suggestions['insights']
+                 else:
+                     suggestions = []
+                     
              # Calculate the real chart data for each suggestion immediately
              for insight in suggestions:
                  try:
@@ -123,6 +130,9 @@ async def upload_file(file: UploadFile = File(...)):
              
         return {"insights": suggestions}
         
+    except HTTPException as he:
+        # Pass through the intentional validation HTTP 400 errors
+        raise he
     except Exception as e:
         print(f"Error processing file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
