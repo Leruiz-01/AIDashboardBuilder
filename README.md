@@ -1,94 +1,139 @@
 # AI Dashboard Builder: Análisis al Instante 🚀
 
-Bienvenido al "Creador de Dashboards con IA", una aplicación web innovadora que le permite a cualquier usuario convertirse en un analista de datos avanzado en segundos, sin necesidad de herramientas BI complejas.
+Bienvenido al **Creador de Dashboards con IA**, una aplicación web full-stack que transforma cualquier hoja de cálculo en un dashboard interactivo impulsado por Inteligencia Artificial — en segundos, sin instalar software de BI.
 
-## Visión del Proyecto
-Innumerables profesionales tienen datos valiosos atrapados en hojas de cálculo, pero carecen del tiempo o la experiencia para explorarlos. Esta herramienta cierra esa brecha: simplemente sube un archivo `.csv` o `.xlsx`, y nuestra inteligencia artificial analizará los patrones, generará *insights* descriptivos, y sugerirá los mejores gráficos para visualizar la información, permitiéndote construir un dashboard interactivo al instante.
+**🌐 Live Demo:** [https://ai-dashboard-builder-i628.vercel.app](https://ai-dashboard-builder-i628.vercel.app)
 
 ---
 
 ## 🏗️ Arquitectura y Decisiones Técnicas
 
-El proyecto se diseñó utilizando una arquitectura Full-Stack moderna para garantizar velocidad, modularidad y una excelente Experiencia de Usuario (UX).
+### Frontend: React + Next.js (TypeScript)
+| Tecnología | Razón |
+|---|---|
+| **Next.js** (App Router) | Velocidad, ecosistema robusto de React, despliegue instantáneo en Vercel. |
+| **Tailwind CSS + shadcn/ui** | Componentes hermosos, accesibles y minimalistas sin inflar el bundle. |
+| **Recharts** | Su naturaleza declarativa en React permite que la transición de "JSON → Gráfico Interactivo" sea fluida. Soporta Bar, Line, Pie y Area charts. |
+| **SPA (Single-Page App)** | El flujo Subida → Carga → Selección → Dashboard ocurre sin recargas. |
 
-### 1. Frontend: React + Next.js (TypeScript)
-- **Framework:** Next.js (App Router) fue elegido por su velocidad, su robusto ecosistema de React, y facilidad de integración.
-- **Styling UI:** Tailwind CSS junto a **shadcn/ui** proveen componentes hermosos, accesibles y minimalistas sin inflar el tamaño final del *bundle*.
-- **Gráficos Dinámicos:** **Recharts** fue integrado por su naturaleza declarativa en React, haciendo que la transición de "JSON a Gráfico Interactivo" sea fluida.
-- **Estructura SPA:** Todo ocurre en una sola página (Single-Page Application). El paso del estado iterativo (Subida -> Carga Analítica -> Selección de Gráficos -> Visualización del Dashboard) se maneja en el cliente para evitar recargas frustrantes.
+### Backend: Python + FastAPI
+| Tecnología | Razón |
+|---|---|
+| **FastAPI** | Alto rendimiento, validación automática vía Pydantic, soporte nativo para async (esperando respuestas de IA). |
+| **Pandas** | Núcleo analítico. Lee CSV/XLSX, extrae esquema de columnas, genera resúmenes estadísticos (`df.describe()`), y agrega los datos vía `groupby()`. |
+| **Groq SDK (Llama 3.3 70B)** | Motor de IA ultrarrápido y gratuito. Genera sugerencias de gráficos estrictamente como JSON estructurado. |
 
-### 2. Backend: Python + FastAPI
-- **Framework:** **FastAPI** fue seleccionado debido a su alto rendimiento, validación automática de datos vía Pydantic, y su soporte nativo para programación asíncrona, vital al esperar respuestas de la IA.
-- **Procesamiento de Datos:** **Pandas** es el núcleo analítico. Lee los CSV/Excel, extrae el esquema (tipos de datos de columnas), genera los resúmenes estadísticos iniciales (`df.describe()`), y agrega los datos (groupby, sumatorias) en base a lo que el frontend necesita renderizar en el dashboard, evitando saturar la red enviando gigabytes de datos sin procesar al cliente.
-- **Core de Inteligencia Artificial:** Integración oficial de **Google GenAI** (`gemini-2.5-flash`).
+### Despliegue
+| Servicio | Plataforma |
+|---|---|
+| Frontend | Vercel |
+| Backend API | Render.com |
 
 ---
 
-## 🧠 Estrategia de Prompt Engineering y la IA
+## 🧠 Estrategia de Prompt Engineering
 
-El éxito diferencial de la aplicación reside en el *Prompt Engineering* diseñado y ubicado en `backend/services/llm_service.py`. 
+El éxito de la aplicación reside en el diseño del prompt (`backend/services/llm_service.py`):
 
-Para evitar alucinaciones y forzar respuestas estrictamente funcionales, el prompt se diseñó bajo estos parámetros:
-1. **Rol de Experto:** Se le instruye actuar como un Analista de Datos senior.
-2. **Inyección de Perfilación de Datos:** En lugar de enviarle todo el archivo (lo cual quemaría tokens y lentificaría el sistema), se le inyecta solo el *alma* del dataset: Nombres de las columnas, tipos de datos pre-clasificados en grupos (numéricas, categóricas, texto), resumen estadístico y solo las 3 primeras filas de muestra.
-3. **Restricción JSON Estricta:** Se le obliga a responder **estrictamente** con un Array de JSON siguiendo una interfaz rígida donde provee parámetros técnicos (xAxis, yAxis perfectamente emparejados con las columnas reales) y metadatos reflexivos (Título atrayente, el Insight explicativo sobre el negocio, un KPI destacado y la tendencia).
-4. **Resiliencia al Parseo:** Se incluyó un mecanismo en el controlador (`api.py`) utilizando expresiones regulares (`re.sub`) para sanitizar y remover bloques de código *markdown* no deseados inyectados por la IA en algunos LLMs antes de decodificar el JSON.
+1. **Rol de Experto:** Se instruye al modelo como un Analista de Datos senior.
+2. **Data Profiling Injection:** En lugar de enviar todo el archivo (lo que quemaría tokens), se inyecta solo la esencia: nombres de columnas, tipos de dato, resumen estadístico y 3 filas de muestra.
+3. **Restricción JSON con `response_format`:** Se usa `response_format={"type": "json_object"}` nativo de Groq para forzar que el LLM devuelva siempre un JSON válido, incluyendo `aggregation` (sum/mean/count) en cada parámetro.
+4. **System vs User Prompt Split:** Se separa el contrato de formato (system prompt) del contexto de datos (user prompt) para máxima consistencia.
+5. **Reglas Matemáticas Estrictas:** Se prohíbe explícitamente sumar/promediar columnas de texto o IDs únicos, garantizando que solo se sugieran gráficos analíticamente válidos.
+6. **Resiliencia al Parseo:** En `api.py` se incluye sanitización con regex para eliminar bloques markdown, y un `try/except` por insight individual para que un gráfico fallido no arruine los demás.
 
 ---
 
 ## ⚙️ Configuración y Ejecución Local
 
-Sigue estos pasos para arrancar el entorno en tu máquina local.
-
 ### Prerrequisitos
 - Python 3.10+
 - Node.js 18+ y npm
-- Una API Key de Google Gemini [Obtener aquí](https://aistudio.google.com/)
+- Una API Key de Groq (gratuita) → [console.groq.com](https://console.groq.com/)
 
-### 1. Configurar el Backend (Python)
-1. Abre una terminal y navega al directorio del backend:
-   ```bash
-   cd AIDashboardBuilder/backend
-   ```
-2. Crea un entorno virtual y actívalo:
-   ```bash
-   python -m venv venv
-   # En Windows:
-   .\venv\Scripts\activate
-   # En Mac/Linux:
-   source venv/bin/activate
-   ```
-3. Instala las dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Configura tus variables de entorno. Crea un archivo `.env` en el directorio `backend/` e incluye tu API Key de Gemini:
-   ```env
-   GOOGLE_API_KEY=tu_clave_secreta_aqui
-   ```
-5. Inicia el servidor de FastAPI:
-   ```bash
-   python -m uvicorn main:app --reload --port 8000
-   ```
+### 1. Backend (Python)
+```bash
+cd AIDashboardBuilder/backend
 
-### 2. Configurar el Frontend (Next.js)
-1. Abre otra terminal paralela y dirígete a la raíz del proyecto web:
-   ```bash
-   cd AIDashboardBuilder
-   ```
-2. Instala los paquetes de React:
-   ```bash
-   npm install --legacy-peer-deps
-   ```
-3. Crea un archivo `.env.local` en la raíz por si deseas mapear la URL de la API (opcional, por defecto es localhost):
-   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:8000
-   ```
-4. Arranca el entorno de desarrollo:
-   ```bash
-   npm run dev
-   ```
-5. Abre [http://localhost:3000](http://localhost:3000) en tu navegador para interactuar con la plataforma!
+# Crear entorno virtual
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno
+# Crear archivo .env en backend/ con:
+# GROQ_API_KEY=tu_clave_de_groq_aqui
+
+# Iniciar el servidor
+python -m uvicorn main:app --reload --port 8000
+```
+
+### 2. Frontend (Next.js)
+```bash
+cd AIDashboardBuilder
+
+# Instalar paquetes
+npm install --legacy-peer-deps
+
+# (Opcional) Crear .env.local con:
+# NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Iniciar desarrollo
+npm run dev
+```
+
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+AIDashboardBuilder/
+├── app/
+│   └── page.tsx                  # Página principal (SPA state machine)
+├── components/dashboard/
+│   ├── hero-section.tsx          # Hero con branding
+│   ├── file-upload.tsx           # Drag-and-drop de archivos
+│   ├── analysis-loading.tsx      # Estado de carga animado
+│   ├── analysis-card.tsx         # Tarjetas de insight con mini-gráficos
+│   ├── analysis-results.tsx      # Grid de tarjetas de análisis
+│   └── dashboard-preview.tsx     # Dashboard interactivo con Recharts
+├── backend/
+│   ├── main.py                   # FastAPI app + CORS middleware
+│   ├── routers/
+│   │   └── api.py                # Endpoints: /upload y /chart-data
+│   └── services/
+│       ├── data_service.py       # Procesamiento Pandas (schema + summary)
+│       └── llm_service.py        # Integración Groq (Llama 3.3)
+└── README.md
+```
+
+---
+
+## ✅ Cumplimiento de Requisitos
+
+| Requisito | Estado |
+|---|---|
+| UI limpia, moderna e intuitiva (React SPA) | ✅ |
+| Drag-and-drop que acepta `.xlsx` y `.csv` | ✅ |
+| Estado de carga atractivo ("AI está analizando...") | ✅ |
+| Tarjetas de Análisis con título, insight y botón "Add to Dashboard" | ✅ |
+| Dashboard grid flexible con Recharts (Bar, Line, Pie, Area) | ✅ |
+| Backend FastAPI con Pandas para procesar archivos | ✅ |
+| Extracción de esquema con `df.describe()` y `df.dtypes` | ✅ |
+| Prompt Engineering para LLM que devuelve JSON estructurado | ✅ |
+| Respuesta JSON con: title, chartType, parameters, insight | ✅ |
+| Segundo endpoint `/chart-data` para datos agregados | ✅ |
+| Despliegue público (Vercel + Render) | ✅ |
+| Exportación de Dashboard (JSON) | ✅ Bonus |
+| Modal expandido interactivo al clickear un widget | ✅ Bonus |
+| Validación de datasets inválidos (< 2 columnas, sin numéricos) | ✅ Bonus |
 
 ---
 
