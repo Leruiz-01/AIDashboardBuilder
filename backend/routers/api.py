@@ -59,8 +59,36 @@ async def upload_file(file: UploadFile = File(...)):
         file_id = "session_df" # Simplified for this single-user prototype
         DATAFRAME_STORAGE[file_id] = df
         
+        # Wide-format detection & melting
+        # If the dataset has many numeric columns (like User x Artist play counts),
+        # melt it into long format so the LLM sees "Category" and "Value" columns
+        # instead of hallucinating non-existent column names.
+        text_cols = df.select_dtypes(include=['object', 'string']).columns.tolist()
+        num_cols_list = df.select_dtypes(include=['number']).columns.tolist()
+        
+        analysis_df = df  # Default: use original
+        
+        if len(num_cols_list) >= 5 and len(text_cols) <= 1:
+            # This looks like a wide-format matrix (e.g., User x Artist)
+            # Identify the ID column (first text column or first column)
+            id_col = text_cols[0] if text_cols else df.columns[0]
+            value_cols = [c for c in num_cols_list if c != id_col]
+            
+            if len(value_cols) >= 5:
+                melted = df.melt(
+                    id_vars=[id_col],
+                    value_vars=value_cols,
+                    var_name="Category",
+                    value_name="Value"
+                )
+                melted = melted.dropna(subset=["Value"])
+                analysis_df = melted
+                # Also store the melted version for chart data aggregation
+                DATAFRAME_STORAGE[file_id] = melted
+                print(f"Wide-format detected: melted {len(value_cols)} columns into Category/Value. Shape: {melted.shape}")
+        
         # Extract data summary
-        summary = get_dataframe_summary(df)
+        summary = get_dataframe_summary(analysis_df)
         
         # Ask LLM for suggestions
         llm_response_text = generate_chart_suggestions(summary)
