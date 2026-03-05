@@ -25,30 +25,47 @@ export default function Page() {
       const formData = new FormData()
       formData.append("file", file)
 
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-        const response = await fetch(`${apiUrl}/upload`, {
-          method: "POST",
-          body: formData,
-        })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const MAX_RETRIES = 2
+      let lastError: Error | null = null
 
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`)
-        }
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            // Wait before retrying (Render cold-start needs time to wake up)
+            await new Promise(resolve => setTimeout(resolve, 2000))
+          }
 
-        const data = await response.json()
-        // data should contain { insights: [...] } based on our backend
-        if (data.insights && Array.isArray(data.insights)) {
-          setAnalysisInsights(data.insights)
-          setAppState("results")
-        } else {
-          throw new Error("Invalid response structure from analysis server")
+          const response = await fetch(`${apiUrl}/upload`, {
+            method: "POST",
+            body: formData,
+          })
+
+          if (!response.ok) {
+            const errorBody = await response.text()
+            throw new Error(`Upload failed: ${errorBody || response.statusText}`)
+          }
+
+          const data = await response.json()
+          if (data.insights && Array.isArray(data.insights)) {
+            setAnalysisInsights(data.insights)
+            setAppState("results")
+            return // Success — exit the retry loop
+          } else {
+            throw new Error("Invalid response structure from analysis server")
+          }
+        } catch (error) {
+          lastError = error as Error
+          console.warn(`Attempt ${attempt + 1} failed:`, (error as Error).message)
+          // If it's not a network/CORS error, don't retry
+          if (lastError.message.includes("Upload failed:")) break
         }
-      } catch (error) {
-        console.error("Error analyzing file:", error)
-        setErrorMsg((error as Error).message)
-        setAppState("idle")
       }
+
+      // All retries exhausted
+      console.error("Error analyzing file after retries:", lastError)
+      setErrorMsg(lastError?.message || "Connection to server failed. Please try again.")
+      setAppState("idle")
     }
     reader.readAsDataURL(file)
   }, [])
