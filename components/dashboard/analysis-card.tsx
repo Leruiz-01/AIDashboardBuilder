@@ -121,7 +121,7 @@ function MiniChart({ type, data }: { type: string, data?: { name: string, value:
           </BarChart>
         ) : type === "line" ? (
           <LineChart data={chartData}>
-            <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} opacity={0.6} />
+            <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={2} dot={false} opacity={0.6} />
           </LineChart>
         ) : type === "pie" ? (
           <PieChart>
@@ -133,7 +133,7 @@ function MiniChart({ type, data }: { type: string, data?: { name: string, value:
           </PieChart>
         ) : (
           <AreaChart data={chartData}>
-            <Area type="monotone" dataKey="value" fill="hsl(var(--primary))" stroke="none" opacity={0.3} />
+            <Area type="monotone" dataKey="value" fill={COLORS[3]} stroke="none" opacity={0.3} />
           </AreaChart>
         )}
       </ResponsiveContainer>

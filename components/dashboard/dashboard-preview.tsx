@@ -165,7 +165,7 @@ function WidgetChart({ type, item, expanded = false }: { type: string, item: Ana
           <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
             <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-            <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
           </LineChart>
         ) : type === "pie" ? (
           <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
@@ -180,7 +180,7 @@ function WidgetChart({ type, item, expanded = false }: { type: string, item: Ana
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
             <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-            <Area type="monotone" dataKey="value" fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeWidth={2} opacity={0.4} />
+            <Area type="monotone" dataKey="value" fill={COLORS[3]} stroke={COLORS[3]} strokeWidth={2} opacity={0.4} />
           </AreaChart>
         )}
       </ResponsiveContainer>
